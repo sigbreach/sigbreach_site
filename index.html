@@ -22,17 +22,57 @@
             font-size: 120px;
             font-weight: bold;
             letter-spacing: 10px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                font-size: 80px;
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                width: 265px;
+            }
+
+            .sig {
+                letter-spacing: 2px;
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                width: 100%;
+            }
+
+            #breach-text {
+                letter-spacing: 2px;
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                width: 100%;
+            }
+
+            .char {
+                flex: 0 0 calc(33.333% - 3.33px);
+                text-align: center;
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
         }
 
         .sig {
             color: white;
-            display: inline;
         }
 
-        .breach {
+        .char.sig {
+            color: white;
+        }
+
+        .breach-char {
             color: red;
-            display: inline;
-            animation: flicker 3s steps(50) 1;
+        }
+
+        .char.breach-char {
+            color: red;
         }
 
         .char {
@@ -87,7 +127,7 @@
 </head>
 <body>
     <div class="container">
-        <span class="sig">SIG</span><span class="breach" id="breach-text"></span>
+        <span class="sig"><span class="char sig">S</span><span class="char sig">I</span><span class="char sig">G</span></span><span id="breach-text">BREACH</span>
     </div>
 
     <script>
@@ -95,16 +135,18 @@
         const targetText = 'BREACH';
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-        // Create individual character states
+        // Create individual character states for BREACH only
         const characterStates = targetText.split('').map((targetChar, index) => ({
             targetChar: targetChar,
             currentChar: targetChar,
             startTime: 0,
             settled: false,
-            settleTime: 6000 + (index * 700), // Each character settles at different times
+            settleTime: 6000 + (index * 700), // Each BREACH character settles at different times
             inverted: false,
             invertedUntil: 0, // Timestamp when inversion should end
-            charSpan: null
+            charSpan: null,
+            isSig: false,
+            isAnimating: true
         }));
 
         function getRandomChar() {
@@ -115,7 +157,7 @@
             characterStates.forEach((state, index) => {
                 if (!state.charSpan) {
                     state.charSpan = document.createElement('span');
-                    state.charSpan.className = 'char';
+                    state.charSpan.className = 'char breach-char';
                     breachElement.appendChild(state.charSpan);
                 }
                 state.charSpan.textContent = state.currentChar;
@@ -136,39 +178,42 @@
                 if (!state.settled) {
                     allSettled = false;
 
-                    // Calculate progress toward settlement
-                    const elapsed = now - state.startTime;
-                    const progress = Math.min(elapsed / state.settleTime, 1);
+                    // Only animate BREACH characters
+                    if (state.isAnimating) {
+                        // Calculate progress toward settlement
+                        const elapsed = now - state.startTime;
+                        const progress = Math.min(elapsed / state.settleTime, 1);
 
-                    // Update inversion state - keep it true if still within invertedUntil time
-                    state.inverted = now < state.invertedUntil;
+                        // Update inversion state - keep it true if still within invertedUntil time
+                        state.inverted = now < state.invertedUntil;
 
-                    // Flicker more frequently at the start, less frequently as time goes on
-                    const flickerChance = Math.random() * (1 - progress);
+                        // Flicker more frequently at the start, less frequently as time goes on
+                        const flickerChance = Math.random() * (1 - progress);
 
-                    if (flickerChance > 0.7) {
-                        state.currentChar = getRandomChar();
-                        // Occasionally invert for glitchy effect (6% chance, lasts 150-250ms)
-                        if (Math.random() < 0.06) {
-                            state.invertedUntil = now + 150 + Math.random() * 100;
-                        }
-                    } else {
-                        // Gradually transition to correct character
-                        if (Math.random() < progress * 0.8) {
-                            state.currentChar = state.targetChar;
-                        } else if (state.currentChar != state.targetChar) {
-                        // Less frequent inversions while settling (4% chance, lasts 100-200ms)
-                            if (Math.random() < 0.04) {
-                                state.invertedUntil = now + 100 + Math.random() * 100;
+                        if (flickerChance > 0.7) {
+                            state.currentChar = getRandomChar();
+                            // Occasionally invert for glitchy effect (6% chance, lasts 150-250ms)
+                            if (Math.random() < 0.06) {
+                                state.invertedUntil = now + 150 + Math.random() * 100;
+                            }
+                        } else {
+                            // Gradually transition to correct character
+                            if (Math.random() < progress * 0.8) {
+                                state.currentChar = state.targetChar;
+                            } else if (state.currentChar != state.targetChar) {
+                            // Less frequent inversions while settling (4% chance, lasts 100-200ms)
+                                if (Math.random() < 0.04) {
+                                    state.invertedUntil = now + 100 + Math.random() * 100;
+                                }
                             }
                         }
-                    }
 
-                    // Check if settled
-                    if (progress >= 1) {
-                        state.currentChar = state.targetChar;
-                        state.settled = true;
-                        state.inverted = false;
+                        // Check if settled
+                        if (progress >= 1) {
+                            state.currentChar = state.targetChar;
+                            state.settled = true;
+                            state.inverted = false;
+                        }
                     }
                 }
             });
@@ -182,6 +227,9 @@
 
         // Start flicker animation when page loads
         window.addEventListener('load', () => {
+            // Clear the breach-text content and rebuild with individual spans
+            breachElement.textContent = '';
+
             const startTime = Date.now();
             characterStates.forEach(state => {
                 state.startTime = startTime;
